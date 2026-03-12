@@ -1,0 +1,1115 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VOTA ZA — Know Before You Vote</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root {
+  --gold: #C9960C;
+  --gold-light: #e8b020;
+  --green-sa: #007A4D;
+  --red-sa: #DE3831;
+  --transition: 0.25s ease;
+}
+[data-theme="dark"] {
+  --bg: #080808; --bg-mid: #111; --bg-card: #161616; --bg-hover: #1e1e1e;
+  --text: #f0ebe0; --text-muted: #666; --text-sub: #999;
+  --border: #222; --border-mid: #2a2a2a; --nav-bg: rgba(8,8,8,0.92);
+  --input-bg: #1a1a1a; --shadow: 0 4px 40px rgba(0,0,0,0.6);
+}
+[data-theme="light"] {
+  --bg: #f7f3ec; --bg-mid: #efe9de; --bg-card: #fff; --bg-hover: #f0ebe0;
+  --text: #0f0f0f; --text-muted: #999; --text-sub: #666;
+  --border: #e0d8cc; --border-mid: #d0c8bc; --nav-bg: rgba(247,243,236,0.92);
+  --input-bg: #f0ebe0; --shadow: 0 4px 40px rgba(0,0,0,0.08);
+}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;overflow-x:hidden;transition:background var(--transition),color var(--transition);}
+a{text-decoration:none;color:inherit;}
+button{cursor:pointer;font-family:'DM Sans',sans-serif;}
+::-webkit-scrollbar{width:4px;}
+::-webkit-scrollbar-track{background:var(--bg);}
+::-webkit-scrollbar-thumb{background:var(--gold);border-radius:2px;}
+
+/* NAV */
+nav{position:fixed;top:0;left:0;right:0;z-index:1000;background:var(--nav-bg);backdrop-filter:blur(16px);border-bottom:1px solid var(--border);transition:background var(--transition);}
+.nav-inner{max-width:1400px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;padding:0 2rem;height:64px;}
+.nav-logo{font-family:'Bebas Neue',sans-serif;font-size:1.9rem;letter-spacing:5px;cursor:pointer;}
+.nav-logo span{color:var(--gold);}
+.nav-logo sup{font-family:'DM Sans',sans-serif;font-size:0.55rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--text-muted);margin-top:-8px;}
+.nav-links{display:flex;align-items:center;gap:0.2rem;list-style:none;}
+.nav-links a{padding:0.4rem 0.9rem;font-size:0.78rem;font-weight:500;color:var(--text-muted);border-radius:2px;transition:all var(--transition);}
+.nav-links a:hover,.nav-links a.active{color:var(--gold);}
+.nav-right{display:flex;align-items:center;gap:1rem;}
+.theme-toggle{background:var(--bg-card);border:1px solid var(--border);color:var(--text-muted);width:36px;height:36px;border-radius:2px;display:flex;align-items:center;justify-content:center;transition:all var(--transition);}
+.theme-toggle:hover{border-color:var(--gold);color:var(--gold);}
+.nav-cta{background:var(--gold);color:#000;padding:0.45rem 1.2rem;border-radius:2px;font-size:0.78rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;border:none;transition:opacity var(--transition);}
+.nav-cta:hover{opacity:0.85;}
+.hamburger{display:none;background:none;border:1px solid var(--border);color:var(--text);width:36px;height:36px;border-radius:2px;font-size:1.1rem;align-items:center;justify-content:center;}
+.mobile-menu{display:none;position:fixed;top:64px;left:0;right:0;bottom:0;background:var(--bg);z-index:999;flex-direction:column;padding:2rem;gap:0.5rem;overflow-y:auto;}
+.mobile-menu.open{display:flex;}
+.mobile-menu a{padding:1rem;font-size:1rem;font-weight:500;color:var(--text-muted);border-bottom:1px solid var(--border);}
+.mobile-menu a:hover{color:var(--gold);}
+
+/* PAGES */
+.page{display:none;padding-top:64px;min-height:100vh;}
+.page.active{display:block;}
+
+/* LOADING STATE */
+.loading-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:1px;background:var(--border);border:1px solid var(--border);}
+.skeleton{background:var(--bg-card);padding:1.8rem;animation:pulse 1.5s ease infinite;}
+.skeleton-line{height:12px;background:var(--border-mid);border-radius:2px;margin-bottom:0.6rem;}
+.skeleton-line.wide{width:100%;}
+.skeleton-line.mid{width:70%;}
+.skeleton-line.short{width:40%;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.5;}}
+
+/* HERO */
+.hero{min-height:calc(100vh - 64px);display:flex;flex-direction:column;justify-content:center;padding:5rem 2rem 4rem;position:relative;overflow:hidden;max-width:1400px;margin:0 auto;}
+.hero-bg-glow{position:fixed;inset:0;pointer-events:none;z-index:0;background:radial-gradient(ellipse 50% 40% at 75% 40%,rgba(201,150,12,0.06) 0%,transparent 70%),radial-gradient(ellipse 40% 50% at 20% 70%,rgba(0,122,77,0.05) 0%,transparent 70%);}
+.flag-stripe{position:absolute;left:0;top:0;bottom:0;width:5px;background:linear-gradient(to bottom,#007A4D 0%,#007A4D 33%,#FFB612 33%,#FFB612 66%,#DE3831 66%,#DE3831 100%);border-radius:0 2px 2px 0;}
+.hero-content{position:relative;z-index:1;padding-left:2rem;}
+.hero-eyebrow{display:flex;align-items:center;gap:0.8rem;font-size:0.72rem;letter-spacing:3px;text-transform:uppercase;color:var(--gold);font-weight:600;margin-bottom:1.2rem;}
+.hero-eyebrow::before{content:'';width:2rem;height:1px;background:var(--gold);}
+.hero h1{font-family:'Bebas Neue',sans-serif;font-size:clamp(3.5rem,11vw,9.5rem);line-height:0.88;letter-spacing:1px;max-width:1000px;}
+.hero h1 .accent{color:var(--gold);}
+.hero-sub{margin-top:1.8rem;font-size:clamp(0.95rem,1.5vw,1.1rem);line-height:1.75;color:var(--text-sub);max-width:520px;font-weight:300;}
+.hero-sub strong{color:var(--text);font-weight:600;}
+.hero-actions{margin-top:2.2rem;display:flex;gap:0.8rem;flex-wrap:wrap;}
+.btn-gold{background:var(--gold);color:#000;padding:0.85rem 2rem;border:none;border-radius:2px;font-size:0.82rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;transition:opacity var(--transition),transform var(--transition);display:inline-block;cursor:pointer;}
+.btn-gold:hover{opacity:0.88;transform:translateY(-2px);}
+.btn-ghost{background:none;border:1px solid var(--border-mid);color:var(--text);padding:0.85rem 2rem;border-radius:2px;font-size:0.82rem;font-weight:500;letter-spacing:1px;text-transform:uppercase;transition:all var(--transition);display:inline-block;cursor:pointer;}
+.btn-ghost:hover{border-color:var(--gold);color:var(--gold);}
+.hero-stats{display:flex;gap:3rem;flex-wrap:wrap;margin-top:4rem;padding-top:2.5rem;border-top:1px solid var(--border);}
+.stat-num{font-family:'Bebas Neue',sans-serif;font-size:2.6rem;color:var(--gold);line-height:1;}
+.stat-label{font-size:0.72rem;color:var(--text-muted);letter-spacing:1.5px;text-transform:uppercase;margin-top:0.25rem;}
+
+/* TICKER */
+.ticker-wrap{background:var(--gold);overflow:hidden;padding:0.6rem 0;}
+.ticker{display:flex;width:max-content;animation:scroll-ticker 35s linear infinite;}
+.ticker-item{white-space:nowrap;padding:0 1.8rem;font-size:0.72rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#000;}
+@keyframes scroll-ticker{from{transform:translateX(0);}to{transform:translateX(-50%);}}
+
+/* SECTIONS */
+.section-wrap{max-width:1400px;margin:0 auto;padding:5rem 2rem;}
+.section-label{font-size:0.72rem;letter-spacing:3px;text-transform:uppercase;color:var(--gold);font-weight:600;margin-bottom:0.6rem;}
+.section-title{font-family:'DM Serif Display',serif;font-size:clamp(1.8rem,3.5vw,2.8rem);line-height:1.15;margin-bottom:0.8rem;}
+.section-title em{color:var(--gold);font-style:italic;}
+.section-desc{color:var(--text-sub);font-size:0.95rem;max-width:480px;line-height:1.7;}
+
+/* HOW IT WORKS */
+.how-bg{background:var(--bg-mid);transition:background var(--transition);}
+.how-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1px;margin-top:3rem;background:var(--border);border:1px solid var(--border);}
+.how-card{background:var(--bg-card);padding:2.2rem 1.8rem;transition:background var(--transition);position:relative;overflow:hidden;}
+.how-card::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;background:var(--gold);transform:scaleX(0);transition:transform 0.3s ease;transform-origin:left;}
+.how-card:hover{background:var(--bg-hover);}
+.how-card:hover::after{transform:scaleX(1);}
+.how-num{font-family:'Bebas Neue',sans-serif;font-size:3.5rem;color:var(--border);line-height:1;margin-bottom:0.8rem;transition:color 0.3s;}
+.how-card:hover .how-num{color:var(--gold);}
+.how-card h3{font-size:1rem;font-weight:600;margin-bottom:0.5rem;}
+.how-card p{color:var(--text-sub);font-size:0.88rem;line-height:1.6;}
+.how-tag{display:inline-block;margin-top:1rem;font-size:0.65rem;letter-spacing:1.5px;text-transform:uppercase;color:var(--gold);border:1px solid rgba(201,150,12,0.3);padding:0.2rem 0.6rem;border-radius:1px;}
+
+/* PARTIES */
+.parties-header{display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:1.5rem;margin-bottom:2rem;}
+.search-bar{display:flex;align-items:center;background:var(--bg-card);border:1px solid var(--border-mid);border-radius:2px;overflow:hidden;transition:border-color var(--transition);}
+.search-bar:focus-within{border-color:var(--gold);}
+.search-bar input{background:none;border:none;outline:none;color:var(--text);padding:0.6rem 1rem;font-size:0.85rem;font-family:'DM Sans',sans-serif;width:220px;}
+.search-bar input::placeholder{color:var(--text-muted);}
+.search-icon{padding:0.6rem 0.8rem;color:var(--text-muted);}
+.filter-row{display:flex;gap:0.4rem;flex-wrap:wrap;margin-bottom:2rem;}
+.filter-btn{background:none;border:1px solid var(--border);color:var(--text-muted);padding:0.35rem 1rem;font-size:0.75rem;letter-spacing:1px;text-transform:uppercase;border-radius:1px;transition:all var(--transition);}
+.filter-btn:hover,.filter-btn.active{border-color:var(--gold);color:var(--gold);background:rgba(201,150,12,0.06);}
+.party-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:1px;background:var(--border);border:1px solid var(--border);}
+.party-card{background:var(--bg-card);padding:1.8rem;position:relative;overflow:hidden;transition:background var(--transition);cursor:pointer;}
+.party-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--party-color,var(--border));}
+.party-card:hover{background:var(--bg-hover);}
+.party-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:0.8rem;}
+.party-abbr{font-family:'Bebas Neue',sans-serif;font-size:1.7rem;letter-spacing:2px;color:var(--party-color,var(--text));line-height:1;}
+.party-badge{font-size:0.62rem;letter-spacing:1px;text-transform:uppercase;padding:0.2rem 0.6rem;border-radius:1px;background:var(--bg-mid);color:var(--text-muted);border:1px solid var(--border);}
+.party-full-name{font-size:0.8rem;color:var(--text-muted);margin-bottom:0.8rem;}
+.party-desc{font-size:0.85rem;color:var(--text-sub);line-height:1.55;margin-bottom:1.2rem;}
+.meters{display:flex;flex-direction:column;gap:0.45rem;}
+.meter-row{display:flex;align-items:center;gap:0.8rem;}
+.meter-lbl{font-size:0.67rem;color:var(--text-muted);width:85px;text-transform:uppercase;letter-spacing:0.5px;}
+.meter-track{flex:1;height:2px;background:var(--border-mid);border-radius:1px;overflow:hidden;}
+.meter-fill{height:100%;border-radius:1px;transition:width 0.8s ease;}
+.meter-pct{font-size:0.68rem;color:var(--text-muted);width:28px;text-align:right;}
+.party-card-footer{margin-top:1.2rem;padding-top:1rem;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;}
+.party-spectrum{font-size:0.68rem;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);}
+
+/* COMPARE */
+.compare-bg{background:var(--bg-mid);transition:background var(--transition);}
+.compare-selectors{display:grid;grid-template-columns:1fr 60px 1fr;gap:1rem;align-items:center;margin:2.5rem 0;}
+.compare-select-wrap{display:flex;flex-direction:column;gap:0.5rem;}
+.compare-select-wrap label{font-size:0.7rem;letter-spacing:2px;text-transform:uppercase;color:var(--text-muted);}
+.styled-select{background:var(--bg-card);border:1px solid var(--border-mid);color:var(--text);padding:0.85rem 1rem;border-radius:2px;font-size:0.9rem;outline:none;transition:border-color var(--transition);appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23999'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 1rem center;cursor:pointer;}
+.styled-select:focus{border-color:var(--gold);}
+.vs-badge{font-family:'Bebas Neue',sans-serif;font-size:1.8rem;color:var(--gold);text-align:center;letter-spacing:2px;}
+.compare-table{border:1px solid var(--border);overflow:hidden;border-radius:2px;}
+.compare-table-header{display:grid;grid-template-columns:1fr 140px 1fr;background:var(--bg-card);border-bottom:2px solid var(--gold);}
+.cth{padding:1rem 1.2rem;font-size:0.75rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);}
+.cth.center{text-align:center;border-left:1px solid var(--border);border-right:1px solid var(--border);}
+.compare-row{display:grid;grid-template-columns:1fr 140px 1fr;border-bottom:1px solid var(--border);transition:background var(--transition);}
+.compare-row:last-child{border-bottom:none;}
+.compare-row:hover{background:var(--bg-hover);}
+.cc{padding:1.2rem;font-size:0.87rem;line-height:1.6;color:var(--text-sub);}
+.cc.topic{display:flex;align-items:center;justify-content:center;text-align:center;background:var(--bg-card);border-left:1px solid var(--border);border-right:1px solid var(--border);font-size:0.68rem;letter-spacing:1.5px;text-transform:uppercase;color:var(--gold);font-weight:700;flex-direction:column;gap:0.3rem;}
+.cc:last-child{text-align:right;}
+
+/* RECEIPTS */
+.receipt-grid{display:flex;flex-direction:column;gap:1px;background:var(--border);border:1px solid var(--border);}
+.receipt-card{background:var(--bg-card);padding:1.8rem;display:grid;grid-template-columns:auto 1fr auto;gap:1.5rem;align-items:flex-start;transition:background var(--transition);}
+.receipt-card:hover{background:var(--bg-hover);}
+.receipt-party-tag{writing-mode:vertical-lr;text-orientation:mixed;transform:rotate(180deg);font-size:0.65rem;letter-spacing:2px;text-transform:uppercase;font-weight:700;color:var(--party-color,var(--text-muted));white-space:nowrap;}
+.receipt-party-name{font-size:0.72rem;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);margin-bottom:0.3rem;}
+.receipt-promise{font-size:1rem;font-weight:600;margin-bottom:0.5rem;color:var(--text);}
+.receipt-reality{font-size:0.88rem;color:var(--text-sub);line-height:1.6;}
+.receipt-source{font-size:0.72rem;color:var(--text-muted);margin-top:0.8rem;}
+.receipt-status{display:flex;flex-direction:column;align-items:center;gap:0.4rem;min-width:80px;}
+.status-pill{padding:0.3rem 0.7rem;border-radius:1px;font-size:0.65rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;white-space:nowrap;}
+.status-broken{background:rgba(222,56,49,0.12);color:#DE3831;border:1px solid rgba(222,56,49,0.3);}
+.status-partial{background:rgba(255,182,18,0.12);color:#FFB612;border:1px solid rgba(255,182,18,0.3);}
+.status-kept{background:rgba(0,122,77,0.12);color:#007A4D;border:1px solid rgba(0,122,77,0.3);}
+.status-pending{background:rgba(150,150,150,0.1);color:var(--text-muted);border:1px solid var(--border);}
+
+/* VOICES */
+.voices-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:1rem;margin-top:2.5rem;}
+.voice-card{background:var(--bg-card);border:1px solid var(--border);padding:1.5rem;border-radius:2px;transition:all var(--transition);}
+.voice-card:hover{border-color:var(--gold);background:var(--bg-hover);}
+.voice-top{display:flex;align-items:center;gap:0.9rem;margin-bottom:0.8rem;}
+.voice-avatar{width:44px;height:44px;border-radius:50%;background:var(--bg-mid);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:1rem;color:var(--gold);flex-shrink:0;}
+.voice-name{font-size:0.9rem;font-weight:600;}
+.voice-handle{font-size:0.78rem;color:var(--text-muted);}
+.voice-bio{font-size:0.83rem;color:var(--text-sub);line-height:1.55;margin-bottom:0.9rem;}
+.tag-row{display:flex;gap:0.35rem;flex-wrap:wrap;margin-bottom:0.7rem;}
+.tag{font-size:0.62rem;letter-spacing:1px;text-transform:uppercase;padding:0.18rem 0.5rem;border-radius:1px;background:rgba(201,150,12,0.08);color:var(--gold);border:1px solid rgba(201,150,12,0.2);}
+.platform-row{display:flex;gap:0.35rem;flex-wrap:wrap;}
+.plat{font-size:0.65rem;letter-spacing:0.5px;padding:0.2rem 0.5rem;border-radius:1px;background:var(--bg-mid);color:var(--text-muted);border:1px solid var(--border);}
+
+/* QUIZ */
+.quiz-wrap{max-width:700px;margin:0 auto;}
+.quiz-progress{display:flex;align-items:center;gap:1rem;margin-bottom:2.5rem;}
+.progress-bar-wrap{flex:1;height:3px;background:var(--border);border-radius:2px;}
+.progress-fill{height:100%;background:var(--gold);border-radius:2px;transition:width 0.4s ease;}
+.progress-label{font-size:0.75rem;color:var(--text-muted);white-space:nowrap;}
+.quiz-card{background:var(--bg-card);border:1px solid var(--border);padding:2.5rem;border-radius:2px;}
+.quiz-q-num{font-size:0.7rem;letter-spacing:2px;text-transform:uppercase;color:var(--gold);margin-bottom:0.8rem;}
+.quiz-question{font-family:'DM Serif Display',serif;font-size:clamp(1.2rem,2.5vw,1.6rem);line-height:1.3;margin-bottom:2rem;}
+.quiz-options{display:flex;flex-direction:column;gap:0.6rem;}
+.quiz-option{background:var(--bg-mid);border:1px solid var(--border);color:var(--text);padding:1rem 1.3rem;border-radius:2px;text-align:left;font-size:0.9rem;line-height:1.5;transition:all var(--transition);}
+.quiz-option:hover{border-color:var(--gold);background:var(--bg-hover);color:var(--gold);}
+.quiz-option.selected{border-color:var(--gold);background:rgba(201,150,12,0.08);color:var(--gold);}
+.quiz-nav{display:flex;justify-content:space-between;margin-top:1.5rem;}
+.quiz-results{display:none;}
+.quiz-results.show{display:block;}
+.result-party-card{background:var(--bg-card);border:2px solid var(--gold);padding:2rem;margin-bottom:1.5rem;border-radius:2px;text-align:center;}
+.result-match-pct{font-family:'Bebas Neue',sans-serif;font-size:4rem;color:var(--gold);line-height:1;}
+.result-match-label{font-size:0.75rem;letter-spacing:2px;text-transform:uppercase;color:var(--text-muted);margin-bottom:0.5rem;}
+.result-party-name{font-family:'DM Serif Display',serif;font-size:1.8rem;margin-bottom:0.8rem;}
+.result-party-desc{color:var(--text-sub);font-size:0.9rem;line-height:1.6;}
+.results-breakdown{display:flex;flex-direction:column;gap:0.5rem;margin-top:1.5rem;}
+.rb-row{display:flex;align-items:center;gap:0.8rem;font-size:0.85rem;}
+.rb-name{width:120px;color:var(--text-sub);}
+.rb-bar-wrap{flex:1;height:4px;background:var(--border);border-radius:2px;}
+.rb-bar{height:100%;border-radius:2px;}
+.rb-pct{font-size:0.8rem;color:var(--text-muted);width:36px;text-align:right;}
+
+/* ELECTIONS */
+.election-tabs{display:flex;border-bottom:1px solid var(--border);margin-bottom:2.5rem;}
+.etab{padding:0.9rem 1.6rem;background:none;border:none;color:var(--text-muted);font-size:0.8rem;letter-spacing:1px;text-transform:uppercase;font-weight:500;border-bottom:2px solid transparent;transition:all var(--transition);cursor:pointer;}
+.etab.active{color:var(--gold);border-bottom-color:var(--gold);}
+.election-content{display:none;}
+.election-content.active{display:block;}
+.election-stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1px;background:var(--border);border:1px solid var(--border);margin-bottom:2.5rem;}
+.estat{background:var(--bg-card);padding:1.8rem;}
+.estat h4{font-size:0.68rem;letter-spacing:2px;text-transform:uppercase;color:var(--text-muted);margin-bottom:0.6rem;}
+.estat .big-num{font-family:'Bebas Neue',sans-serif;font-size:2.5rem;color:var(--gold);line-height:1;}
+.estat p{font-size:0.83rem;color:var(--text-sub);margin-top:0.4rem;line-height:1.5;}
+.results-table{width:100%;border-collapse:collapse;border:1px solid var(--border);}
+.results-table th{padding:0.8rem 1.2rem;background:var(--bg-card);font-size:0.7rem;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-muted);text-align:left;border-bottom:2px solid var(--gold);}
+.results-table td{padding:1rem 1.2rem;font-size:0.88rem;border-bottom:1px solid var(--border);color:var(--text-sub);}
+.results-table tr:hover td{background:var(--bg-hover);}
+.results-table td:first-child{font-weight:600;color:var(--text);}
+.party-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;display:inline-block;margin-right:0.5rem;}
+
+/* GUIDE */
+.guide-grid{display:grid;grid-template-columns:1fr 1fr;gap:4rem;margin-top:3rem;}
+.guide-section-title{font-family:'DM Serif Display',serif;font-size:1.3rem;margin-bottom:1.5rem;padding-bottom:0.8rem;border-bottom:1px solid var(--border);}
+.guide-list{list-style:none;display:flex;flex-direction:column;gap:1.2rem;}
+.guide-item{display:flex;align-items:flex-start;gap:1rem;font-size:0.9rem;color:var(--text-sub);line-height:1.6;}
+.guide-icon{width:24px;height:24px;flex-shrink:0;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.65rem;font-weight:700;margin-top:1px;}
+.guide-icon.check{background:rgba(0,122,77,0.15);color:#007A4D;border:1px solid rgba(0,122,77,0.3);}
+.guide-icon.arrow{background:rgba(201,150,12,0.1);color:var(--gold);border:1px solid rgba(201,150,12,0.3);}
+.guide-item strong{color:var(--text);display:block;margin-bottom:0.15rem;font-weight:600;}
+.faq-item{border-bottom:1px solid var(--border);}
+.faq-q{width:100%;background:none;border:none;color:var(--text);text-align:left;padding:1.2rem 0;font-size:0.95rem;font-weight:500;display:flex;justify-content:space-between;align-items:center;gap:1rem;transition:color var(--transition);}
+.faq-q:hover{color:var(--gold);}
+.faq-arrow{color:var(--text-muted);font-size:0.8rem;transition:transform 0.3s;flex-shrink:0;}
+.faq-item.open .faq-arrow{transform:rotate(180deg);}
+.faq-a{max-height:0;overflow:hidden;transition:max-height 0.4s ease,padding 0.3s;font-size:0.88rem;color:var(--text-sub);line-height:1.7;}
+.faq-item.open .faq-a{max-height:300px;padding-bottom:1.2rem;}
+
+/* NEWSLETTER */
+.nl-section{background:var(--gold);padding:5rem 2rem;text-align:center;}
+.nl-section h2{font-family:'Bebas Neue',sans-serif;font-size:clamp(2.5rem,6vw,5rem);color:#000;letter-spacing:2px;line-height:1;}
+.nl-section p{color:rgba(0,0,0,0.6);margin:1rem auto 2rem;max-width:400px;font-size:0.95rem;}
+.nl-form{display:flex;gap:0;max-width:420px;margin:0 auto;}
+.nl-input{flex:1;background:rgba(0,0,0,0.12);border:1.5px solid rgba(0,0,0,0.2);border-right:none;color:#000;padding:0.9rem 1.1rem;font-family:'DM Sans',sans-serif;font-size:0.88rem;outline:none;}
+.nl-input::placeholder{color:rgba(0,0,0,0.4);}
+.nl-btn{background:#000;color:var(--gold);border:none;padding:0.9rem 1.4rem;font-size:0.8rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;transition:opacity var(--transition);}
+.nl-btn:hover{opacity:0.85;}
+
+/* FOOTER */
+footer{background:var(--bg-mid);border-top:1px solid var(--border);}
+.footer-inner{max-width:1400px;margin:0 auto;padding:3rem 2rem;display:grid;grid-template-columns:1fr 1fr 1fr;gap:2rem;}
+.footer-logo{font-family:'Bebas Neue',sans-serif;font-size:1.7rem;letter-spacing:4px;margin-bottom:0.5rem;}
+.footer-logo span{color:var(--gold);}
+.footer-tagline{font-size:0.82rem;color:var(--text-muted);}
+.footer-links-col h4{font-size:0.7rem;letter-spacing:2px;text-transform:uppercase;color:var(--text-muted);margin-bottom:1rem;}
+.footer-links-col a{display:block;font-size:0.85rem;color:var(--text-sub);margin-bottom:0.5rem;transition:color var(--transition);}
+.footer-links-col a:hover{color:var(--gold);}
+.footer-bottom{border-top:1px solid var(--border);padding:1.2rem 2rem;display:flex;justify-content:space-between;align-items:center;font-size:0.78rem;color:var(--text-muted);max-width:1400px;margin:0 auto;flex-wrap:wrap;gap:0.5rem;}
+.footer-flag{display:flex;gap:3px;align-items:center;}
+.flag-dot{width:8px;height:8px;border-radius:50%;}
+
+/* ABOUT */
+.about-grid{display:grid;grid-template-columns:1fr 1fr;gap:5rem;margin-top:3rem;}
+.about-manifesto{font-family:'DM Serif Display',serif;font-size:1.5rem;line-height:1.5;margin-bottom:1.5rem;}
+.about-manifesto em{color:var(--gold);font-style:italic;}
+.about-body p{font-size:0.92rem;color:var(--text-sub);line-height:1.8;margin-bottom:1rem;}
+.principles{margin-top:2rem;display:flex;flex-direction:column;gap:1.2rem;}
+.principle{display:flex;gap:1rem;padding:1.2rem;background:var(--bg-card);border:1px solid var(--border);border-radius:2px;}
+.principle-icon{font-size:1.3rem;flex-shrink:0;margin-top:2px;}
+.principle h4{font-size:0.88rem;font-weight:600;margin-bottom:0.3rem;}
+.principle p{font-size:0.82rem;color:var(--text-sub);line-height:1.5;}
+
+/* TOAST */
+.toast{position:fixed;bottom:2rem;right:2rem;background:var(--bg-card);border:1px solid var(--gold);color:var(--text);padding:1rem 1.5rem;border-radius:2px;font-size:0.88rem;z-index:9999;transform:translateY(100px);opacity:0;transition:all 0.3s ease;max-width:320px;}
+.toast.show{transform:translateY(0);opacity:1;}
+
+/* RESPONSIVE */
+@media (max-width:900px){
+  .nav-links{display:none;}
+  .hamburger{display:flex;}
+  .nav-cta{display:none;}
+  .guide-grid{grid-template-columns:1fr;gap:2.5rem;}
+  .about-grid{grid-template-columns:1fr;gap:2.5rem;}
+  .footer-inner{grid-template-columns:1fr;gap:1.5rem;}
+  .compare-selectors{grid-template-columns:1fr;}
+  .vs-badge{display:none;}
+}
+@media (max-width:600px){
+  .hero h1{font-size:3rem;}
+  .receipt-card{grid-template-columns:1fr;}
+  .receipt-party-tag{writing-mode:unset;transform:none;}
+  .hero-stats{gap:1.5rem;}
+  .compare-row{grid-template-columns:1fr;}
+  .cc.topic{border:none;border-top:1px solid var(--border);border-bottom:1px solid var(--border);}
+}
+</style>
+</head>
+<body>
+
+<div class="hero-bg-glow"></div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-inner">
+    <div class="nav-logo" onclick="showPage('home')">VOT<span>A</span><sup>ZA</sup></div>
+    <ul class="nav-links">
+      <li><a href="#" onclick="showPage('home')" data-page="home">Home</a></li>
+      <li><a href="#" onclick="showPage('parties')" data-page="parties">Parties</a></li>
+      <li><a href="#" onclick="showPage('compare')" data-page="compare">Compare</a></li>
+      <li><a href="#" onclick="showPage('receipts')" data-page="receipts">Receipts</a></li>
+      <li><a href="#" onclick="showPage('guide')" data-page="guide">Guide</a></li>
+      <li><a href="#" onclick="showPage('voices')" data-page="voices">Voices</a></li>
+      <li><a href="#" onclick="showPage('elections')" data-page="elections">Elections</a></li>
+      <li><a href="#" onclick="showPage('quiz')" data-page="quiz">Quiz</a></li>
+      <li><a href="#" onclick="showPage('about')" data-page="about">About</a></li>
+    </ul>
+    <div class="nav-right">
+      <button class="theme-toggle" id="themeToggle">☀</button>
+      <button class="nav-cta" onclick="showPage('quiz')">Find My Party</button>
+      <button class="hamburger" id="hamburger">☰</button>
+    </div>
+  </div>
+</nav>
+
+<!-- MOBILE MENU -->
+<div class="mobile-menu" id="mobileMenu">
+  <a href="#" onclick="showPage('home');closeMobile()">Home</a>
+  <a href="#" onclick="showPage('parties');closeMobile()">Parties</a>
+  <a href="#" onclick="showPage('compare');closeMobile()">Compare Parties</a>
+  <a href="#" onclick="showPage('receipts');closeMobile()">Promises vs Receipts</a>
+  <a href="#" onclick="showPage('guide');closeMobile()">Voting Guide</a>
+  <a href="#" onclick="showPage('voices');closeMobile()">Political Voices</a>
+  <a href="#" onclick="showPage('elections');closeMobile()">Elections</a>
+  <a href="#" onclick="showPage('quiz');closeMobile()">Find My Party Quiz</a>
+  <a href="#" onclick="showPage('about');closeMobile()">About</a>
+</div>
+
+<!-- ═══ HOME ═══ -->
+<div class="page active" id="page-home">
+  <div style="position:relative;">
+    <div class="flag-stripe"></div>
+    <div class="hero">
+      <div class="hero-content">
+        <div class="hero-eyebrow">South Africa&#8217;s Political Intelligence Platform</div>
+        <h1>KNOW BEFORE<br>YOU <span class="accent">VOTE.</span></h1>
+        <p class="hero-sub"><strong>50+ parties. One election. Zero confusion.</strong><br>VOTA cuts through the noise — unbiased breakdowns of what parties say, what they actually do, and who to follow to stay sharp.</p>
+        <div class="hero-actions">
+          <button class="btn-gold" onclick="showPage('quiz')">Find My Party →</button>
+          <button class="btn-ghost" onclick="showPage('parties')">Explore All Parties</button>
+        </div>
+        <div class="hero-stats">
+          <div><div class="stat-num" id="statParties">—</div><div class="stat-label">Registered Parties</div></div>
+          <div><div class="stat-num">27M</div><div class="stat-label">Registered Voters</div></div>
+          <div><div class="stat-num">9</div><div class="stat-label">Provinces</div></div>
+          <div><div class="stat-num">257</div><div class="stat-label">Municipalities</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="ticker-wrap"><div class="ticker">
+    <span class="ticker-item">National Elections ✦</span><span class="ticker-item">Municipal Elections ✦</span><span class="ticker-item">What They Promise ✦</span><span class="ticker-item">What They Deliver ✦</span><span class="ticker-item">Unbiased. Always. ✦</span><span class="ticker-item">Know Before You Vote ✦</span><span class="ticker-item">50+ Parties Tracked ✦</span><span class="ticker-item">Your Vote. Your Choice. ✦</span>
+    <span class="ticker-item">National Elections ✦</span><span class="ticker-item">Municipal Elections ✦</span><span class="ticker-item">What They Promise ✦</span><span class="ticker-item">What They Deliver ✦</span><span class="ticker-item">Unbiased. Always. ✦</span><span class="ticker-item">Know Before You Vote ✦</span><span class="ticker-item">50+ Parties Tracked ✦</span><span class="ticker-item">Your Vote. Your Choice. ✦</span>
+  </div></div>
+  <div class="how-bg"><div class="section-wrap">
+    <div class="section-label">Platform Features</div>
+    <div class="section-title">Everything you need to vote <em>with confidence</em></div>
+    <div class="how-grid">
+      <div class="how-card"><div class="how-num">01</div><h3>Party Profiles</h3><p>Deep breakdowns of every registered party — ideology, key policies, track record, funding, and the things they&#8217;ve actually said.</p><span class="how-tag">Unbiased</span></div>
+      <div class="how-card"><div class="how-num">02</div><h3>Promises vs Receipts</h3><p>What parties promised versus what they delivered. Manifesto commitments tracked against parliamentary and delivery records.</p><span class="how-tag">Fact-Checked</span></div>
+      <div class="how-card"><div class="how-num">03</div><h3>Side-by-Side Compare</h3><p>Pick any two parties and compare them across economy, housing, education, healthcare, safety and more.</p><span class="how-tag">Interactive</span></div>
+      <div class="how-card"><div class="how-num">04</div><h3>Political Voices</h3><p>Curated analysts, journalists, and commentators who make politics understandable — across all platforms.</p><span class="how-tag">Curated</span></div>
+      <div class="how-card"><div class="how-num">05</div><h3>Municipal Coverage</h3><p>Track ward councillors, metro performance, and local candidates. Your local vote matters more than you think.</p><span class="how-tag">Local Focus</span></div>
+      <div class="how-card"><div class="how-num">06</div><h3>Find My Party Quiz</h3><p>Answer a few questions on the issues you care about. We&#8217;ll show you which parties most closely align with your values.</p><span class="how-tag">Personalised</span></div>
+    </div>
+  </div></div>
+  <div class="nl-section">
+    <h2>STAY IN THE KNOW.</h2>
+    <p>No spin. No party lines. Clear, accessible political updates in your inbox.</p>
+    <div class="nl-form">
+      <input class="nl-input" id="homeEmail" type="email" placeholder="your@email.com">
+      <button class="nl-btn" onclick="subscribeNewsletter('homeEmail','homepage')">Subscribe</button>
+    </div>
+  </div>
+  <footer>
+    <div class="footer-inner">
+      <div><div class="footer-logo">VOT<span>A</span></div><div class="footer-tagline">Non-partisan. Built for South Africans.</div></div>
+      <div class="footer-links-col"><h4>Platform</h4><a href="#" onclick="showPage('parties')">Party Profiles</a><a href="#" onclick="showPage('compare')">Compare</a><a href="#" onclick="showPage('receipts')">Receipts</a><a href="#" onclick="showPage('elections')">Elections</a></div>
+      <div class="footer-links-col"><h4>Info</h4><a href="#" onclick="showPage('about')">About</a><a href="#" onclick="showPage('guide')">Voting Guide</a><a href="#" onclick="showPage('voices')">Voices</a><a href="#" onclick="showPage('quiz')">Find My Party</a></div>
+    </div>
+    <div class="footer-bottom"><span>&#169; 2025 VOTA ZA. Not affiliated with any political party or the IEC.</span><div class="footer-flag"><div class="flag-dot" style="background:#007A4D"></div><div class="flag-dot" style="background:#FFB612"></div><div class="flag-dot" style="background:#DE3831"></div><span style="margin-left:0.4rem">Made in South Africa</span></div></div>
+  </footer>
+</div>
+
+<!-- ═══ PARTIES ═══ -->
+<div class="page" id="page-parties">
+  <div class="section-wrap">
+    <div class="section-label">Political Parties</div>
+    <div class="parties-header">
+      <div><div class="section-title">Know who&#8217;s <em>on the ballot</em></div><p class="section-desc">Every registered party — ideology, policies, leaders, and record.</p></div>
+      <div class="search-bar"><span class="search-icon">🔍</span><input type="text" id="partySearch" placeholder="Search parties..." oninput="filterParties()"></div>
+    </div>
+    <div class="filter-row">
+      <button class="filter-btn active" onclick="filterBySpectrum('all',this)">All</button>
+      <button class="filter-btn" onclick="filterBySpectrum('far-left',this)">Far Left</button>
+      <button class="filter-btn" onclick="filterBySpectrum('left',this)">Left</button>
+      <button class="filter-btn" onclick="filterBySpectrum('centre',this)">Centre</button>
+      <button class="filter-btn" onclick="filterBySpectrum('right',this)">Right</button>
+      <button class="filter-btn" onclick="filterBySpectrum('populist',this)">Populist</button>
+    </div>
+    <div id="partyGrid" class="party-grid"></div>
+  </div>
+  <footer><div class="footer-bottom"><span>&#169; 2025 VOTA ZA</span><span>Data from IEC, parliamentary records &amp; manifestos</span></div></footer>
+</div>
+
+<!-- ═══ COMPARE ═══ -->
+<div class="page" id="page-compare">
+  <div class="compare-bg" style="min-height:calc(100vh - 64px)">
+    <div class="section-wrap">
+      <div class="section-label">Compare Tool</div>
+      <div class="section-title">Put them <em>side by side</em></div>
+      <p class="section-desc">Select any two parties and see how they differ on the issues that matter most.</p>
+      <div class="compare-selectors">
+        <div class="compare-select-wrap"><label>Party A</label><select class="styled-select" id="partyA" onchange="updateCompare()"><option value="">Loading...</option></select></div>
+        <div class="vs-badge">VS</div>
+        <div class="compare-select-wrap"><label>Party B</label><select class="styled-select" id="partyB" onchange="updateCompare()"><option value="">Loading...</option></select></div>
+      </div>
+      <div class="compare-table">
+        <div class="compare-table-header">
+          <div class="cth" id="compareHeaderA" style="color:var(--gold)">—</div>
+          <div class="cth center">Topic</div>
+          <div class="cth" id="compareHeaderB">—</div>
+        </div>
+        <div id="compareRows"><div style="padding:2rem;text-align:center;color:var(--text-muted)">Loading parties...</div></div>
+      </div>
+    </div>
+  </div>
+  <footer><div class="footer-bottom"><span>&#169; 2025 VOTA ZA</span></div></footer>
+</div>
+
+<!-- ═══ RECEIPTS ═══ -->
+<div class="page" id="page-receipts">
+  <div class="section-wrap">
+    <div class="section-label">Accountability</div>
+    <div class="section-title">Promises vs <em>Reality</em></div>
+    <p class="section-desc">What parties promised versus what they actually did. The receipts don&#8217;t lie.</p>
+    <div class="filter-row" style="margin-top:2rem">
+      <button class="filter-btn active" onclick="filterReceipts('all',this)">All</button>
+      <button class="filter-btn" onclick="filterReceipts('broken',this)">Broken 🔴</button>
+      <button class="filter-btn" onclick="filterReceipts('partial',this)">Partial 🟡</button>
+      <button class="filter-btn" onclick="filterReceipts('kept',this)">Kept 🟢</button>
+      <button class="filter-btn" onclick="filterReceipts('pending',this)">Pending ⚪</button>
+    </div>
+    <div id="receiptGrid" class="receipt-grid"></div>
+  </div>
+  <footer><div class="footer-bottom"><span>&#169; 2025 VOTA ZA — All data sourced and cited</span></div></footer>
+</div>
+
+<!-- ═══ GUIDE ═══ -->
+<div class="page" id="page-guide">
+  <div class="how-bg" style="min-height:calc(100vh - 64px)">
+    <div class="section-wrap">
+      <div class="section-label">Voting Guide</div>
+      <div class="section-title">How to vote <em>with confidence</em></div>
+      <p class="section-desc">Everything you need to know — from registering to what happens on election day. In plain language.</p>
+      <div class="guide-grid">
+        <div>
+          <div class="guide-section-title">How to choose who to vote for</div>
+          <ul class="guide-list">
+            <li class="guide-item"><div class="guide-icon check">✓</div><div><strong>Read their manifesto</strong>Not just the slogans. What are their top 3 concrete policy promises?</div></li>
+            <li class="guide-item"><div class="guide-icon check">✓</div><div><strong>Check their delivery record</strong>If they&#8217;ve held power before — what did they actually do? Use the Receipts page.</div></li>
+            <li class="guide-item"><div class="guide-icon check">✓</div><div><strong>Follow the money</strong>Party funding declarations reveal whose interests they may represent.</div></li>
+            <li class="guide-item"><div class="guide-icon check">✓</div><div><strong>Who are their actual leaders?</strong>The person at the top sets the tone. Research their background and history.</div></li>
+            <li class="guide-item"><div class="guide-icon check">✓</div><div><strong>What&#8217;s their local plan?</strong>National promises are one thing. What do they say about your municipality?</div></li>
+          </ul>
+        </div>
+        <div>
+          <div class="guide-section-title">How the voting system works</div>
+          <ul class="guide-list">
+            <li class="guide-item"><div class="guide-icon arrow">→</div><div><strong>Proportional Representation</strong>Your vote goes to the party, not the person. Seats allocated by % of votes.</div></li>
+            <li class="guide-item"><div class="guide-icon arrow">→</div><div><strong>Two ballot papers</strong>One for the National Assembly, one for your Provincial Legislature. You can split your vote.</div></li>
+            <li class="guide-item"><div class="guide-icon arrow">→</div><div><strong>Municipal elections differ</strong>Ward vote (specific candidate) + proportional vote (party). Ward councillors control local services.</div></li>
+            <li class="guide-item"><div class="guide-icon arrow">→</div><div><strong>Registration is required</strong>Check your status at elections.org.za. You can only vote at your registered station.</div></li>
+            <li class="guide-item"><div class="guide-icon arrow">→</div><div><strong>Bring your ID</strong>Green barcoded ID book or Smart ID card. No ID, no vote.</div></li>
+          </ul>
+        </div>
+      </div>
+      <div style="margin-top:3rem">
+        <div class="section-title" style="margin-bottom:1.5rem">Frequently Asked <em>Questions</em></div>
+        <div class="faq-item"><button class="faq-q" onclick="toggleFaq(this)">Can I vote for different parties in national and provincial elections? <span class="faq-arrow">▼</span></button><div class="faq-a">Yes. You receive two separate ballot papers — one for the National Assembly and one for the Provincial Legislature. You can vote for the same party on both, or different parties.</div></div>
+        <div class="faq-item"><button class="faq-q" onclick="toggleFaq(this)">What happens if no party wins a majority? <span class="faq-arrow">▼</span></button><div class="faq-a">Parties negotiate to form a coalition or Government of National Unity (GNU). This happened in 2024 when the ANC fell below 50%.</div></div>
+        <div class="faq-item"><button class="faq-q" onclick="toggleFaq(this)">Is my vote really secret? <span class="faq-arrow">▼</span></button><div class="faq-a">Yes. Your vote is constitutionally protected as secret. Ballot papers are not linked to your name or ID. No one can find out how you voted.</div></div>
+        <div class="faq-item"><button class="faq-q" onclick="toggleFaq(this)">How do I register to vote? <span class="faq-arrow">▼</span></button><div class="faq-a">Visit any IEC office with your ID document. You can also check or update your registration at elections.org.za. Registration is free.</div></div>
+        <div class="faq-item"><button class="faq-q" onclick="toggleFaq(this)">Can I vote if I&#8217;m abroad on election day? <span class="faq-arrow">▼</span></button><div class="faq-a">Yes. Vote at South African embassies and consulates during the special voting period. You must register your intention with the IEC in advance.</div></div>
+      </div>
+    </div>
+  </div>
+  <footer><div class="footer-bottom"><span>&#169; 2025 VOTA ZA</span></div></footer>
+</div>
+
+<!-- ═══ VOICES ═══ -->
+<div class="page" id="page-voices">
+  <div class="section-wrap">
+    <div class="section-label">Political Voices</div>
+    <div class="section-title">People who make politics <em>make sense</em></div>
+    <p class="section-desc">Analysts, journalists, and commentators vetted for credibility and clarity — across all platforms.</p>
+    <div id="voicesGrid" class="voices-grid"></div>
+  </div>
+  <footer><div class="footer-bottom"><span>&#169; 2025 VOTA ZA — Curated independently, not paid placements</span></div></footer>
+</div>
+
+<!-- ═══ ELECTIONS ═══ -->
+<div class="page" id="page-elections">
+  <div class="how-bg" style="min-height:calc(100vh - 64px)">
+    <div class="section-wrap">
+      <div class="section-label">Elections</div>
+      <div class="section-title">National · Provincial · <em>Municipal</em></div>
+      <div class="election-tabs">
+        <button class="etab active" onclick="switchElectionTab('national',this)">National 2024</button>
+        <button class="etab" onclick="switchElectionTab('municipal',this)">Municipal 2026</button>
+        <button class="etab" onclick="switchElectionTab('how',this)">How It Works</button>
+      </div>
+      <div class="election-content active" id="etab-national">
+        <div class="election-stat-grid">
+          <div class="estat"><h4>Election Date</h4><div class="big-num">29 May</div><p>2024 General Election. First since 1994 where ANC fell below 50%.</p></div>
+          <div class="estat"><h4>Voter Turnout</h4><div class="big-num">58.6%</div><p>Of 27.6 million registered voters. Lowest turnout since 1994.</p></div>
+          <div class="estat"><h4>Parties Contested</h4><div class="big-num">52</div><p>Registered parties contested. Fraction won NA seats.</p></div>
+          <div class="estat"><h4>Result</h4><div class="big-num">GNU</div><p>Government of National Unity formed. ANC, DA, IFP and others.</p></div>
+        </div>
+        <table class="results-table">
+          <thead><tr><th>Party</th><th>Vote %</th><th>Share</th><th>NA Seats</th></tr></thead>
+          <tbody id="electionResultsBody"></tbody>
+        </table>
+      </div>
+      <div class="election-content" id="etab-municipal">
+        <div class="election-stat-grid">
+          <div class="estat"><h4>Next Municipal Election</h4><div class="big-num">2026</div><p>Date to be confirmed by IEC. Registration is ongoing.</p></div>
+          <div class="estat"><h4>Municipalities</h4><div class="big-num">257</div><p>8 metros, 44 district, 205 local municipalities.</p></div>
+          <div class="estat"><h4>Ward Seats</h4><div class="big-num">4 458</div><p>Individual ward councillor seats contested.</p></div>
+          <div class="estat"><h4>Last Municipal</h4><div class="big-num">2021</div><p>ANC lost majority in Joburg, Tshwane, Ekurhuleni.</p></div>
+        </div>
+        <div style="background:var(--bg-card);border:1px solid var(--border);padding:2rem;border-radius:2px;">
+          <div class="section-label">Why Municipal Elections Matter More</div>
+          <p style="color:var(--text-sub);font-size:0.92rem;line-height:1.8;max-width:700px">Your water supply, electricity, road maintenance, refuse collection, housing approvals — all controlled at the municipal level. Many South Africans experience the consequences of local governance far more directly than national policy. Your local vote is often the most powerful one you cast.</p>
+        </div>
+      </div>
+      <div class="election-content" id="etab-how">
+        <div class="election-stat-grid">
+          <div class="estat"><h4>System Type</h4><div class="big-num" style="font-size:1.6rem">PR + Ward</div><p>Proportional Representation nationally. Mixed system locally.</p></div>
+          <div class="estat"><h4>Minimum to Win</h4><div class="big-num">50%+1</div><p>Need more than half of all seats to govern alone.</p></div>
+          <div class="estat"><h4>Ballot Papers</h4><div class="big-num">2–3</div><p>National: 2 ballots. Municipal: up to 3 ballots.</p></div>
+          <div class="estat"><h4>Election Body</h4><div class="big-num">IEC</div><p>Independent Electoral Commission. Constitutionally independent.</p></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <footer><div class="footer-bottom"><span>&#169; 2025 VOTA ZA — Data from IEC official results</span></div></footer>
+</div>
+
+<!-- ═══ QUIZ ═══ -->
+<div class="page" id="page-quiz">
+  <div style="min-height:calc(100vh - 64px);padding:3rem 2rem;">
+    <div class="section-wrap" style="padding:3rem 0">
+      <div class="section-label">Find My Party</div>
+      <div class="section-title">Which party <em>matches your values?</em></div>
+      <p class="section-desc" style="margin-bottom:2.5rem">Answer 8 questions. We&#8217;ll show which parties align with what you care about. No data stored without consent.</p>
+      <div class="quiz-wrap">
+        <div class="quiz-progress" id="quizProgress">
+          <div class="progress-bar-wrap"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+          <span class="progress-label" id="progressLabel">Question 1 of 8</span>
+        </div>
+        <div class="quiz-card" id="quizCard">
+          <div class="quiz-q-num" id="qNum">Question 01</div>
+          <div class="quiz-question" id="qText"></div>
+          <div class="quiz-options" id="qOptions"></div>
+          <div class="quiz-nav"><button class="btn-ghost" onclick="quizBack()" id="quizBackBtn" style="display:none">← Back</button><div></div></div>
+        </div>
+        <div class="quiz-results" id="quizResults">
+          <div class="result-party-card">
+            <div class="result-match-label">Your closest match</div>
+            <div class="result-match-pct" id="resultPct">—</div>
+            <div class="result-party-name" id="resultParty">—</div>
+            <div class="result-party-desc" id="resultDesc"></div>
+          </div>
+          <div style="margin:1.5rem 0 0.8rem;font-size:0.78rem;letter-spacing:2px;text-transform:uppercase;color:var(--text-muted)">All Party Matches</div>
+          <div class="results-breakdown" id="resultsBreakdown"></div>
+          <div style="margin-top:2rem;display:flex;gap:1rem;flex-wrap:wrap">
+            <button class="btn-gold" onclick="showPage('parties')">Explore These Parties →</button>
+            <button class="btn-ghost" onclick="restartQuiz()">Retake Quiz</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <footer><div class="footer-bottom"><span>&#169; 2025 VOTA ZA — Results are illustrative, not prescriptive</span></div></footer>
+</div>
+
+<!-- ═══ ABOUT ═══ -->
+<div class="page" id="page-about">
+  <div class="section-wrap">
+    <div class="section-label">About VOTA</div>
+    <div class="section-title">Why we <em>built this</em></div>
+    <div class="about-grid">
+      <div class="about-body">
+        <div class="about-manifesto">South Africa has <em>50+ political parties</em>. Most voters know fewer than five.</div>
+        <p>We built VOTA because every South African deserves to make an informed vote — regardless of education level, political background, or how much time they have to research.</p>
+        <p>Politics shouldn&#8217;t require a degree to understand. Manifestos shouldn&#8217;t need a lawyer to decode. And the gap between what parties promise and what they deliver shouldn&#8217;t be a secret.</p>
+        <p>VOTA is strictly non-partisan. We apply the same scrutiny to every party. We have no affiliation, accept no political advertising, and our methodology is publicly available.</p>
+        <div class="principles">
+          <div class="principle"><div class="principle-icon">⚖️</div><div><h4>Unbiased, always</h4><p>Identical criteria applied to every party. No favourites, no enemies.</p></div></div>
+          <div class="principle"><div class="principle-icon">📎</div><div><h4>Everything is sourced</h4><p>Every claim links to an original source — manifestos, Hansard, auditor reports.</p></div></div>
+          <div class="principle"><div class="principle-icon">🗣️</div><div><h4>Plain language</h4><p>Written for a 16-year-old, useful for a professor. Accessible without being patronising.</p></div></div>
+          <div class="principle"><div class="principle-icon">🏙️</div><div><h4>Local matters</h4><p>We cover municipalities and wards, not just national parliament.</p></div></div>
+        </div>
+      </div>
+      <div>
+        <div style="background:var(--bg-card);border:1px solid var(--border);padding:2rem;border-radius:2px;">
+          <div class="section-label">Our Methodology</div>
+          <p style="font-size:0.88rem;color:var(--text-sub);line-height:1.8">Party scores on Economy, Delivery, and Transparency are calculated from: Auditor-General reports, parliamentary attendance records, manifesto tracking databases, StatsSA service delivery surveys, and IEC financial disclosure reports. Scores are reviewed and updated annually.</p>
+        </div>
+        <div style="margin-top:2rem">
+          <div class="nl-section" style="border-radius:2px;padding:2.5rem">
+            <h2 style="font-size:2rem">STAY IN THE KNOW.</h2>
+            <p style="margin:0.8rem auto 1.5rem">Weekly political updates. No spin.</p>
+            <div class="nl-form">
+              <input class="nl-input" id="aboutEmail" type="email" placeholder="your@email.com">
+              <button class="nl-btn" onclick="subscribeNewsletter('aboutEmail','about')">Subscribe</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <footer>
+    <div class="footer-inner">
+      <div><div class="footer-logo">VOT<span>A</span></div><div class="footer-tagline">Non-partisan. Built for South Africans.</div></div>
+      <div class="footer-links-col"><h4>Platform</h4><a href="#" onclick="showPage('parties')">Parties</a><a href="#" onclick="showPage('compare')">Compare</a><a href="#" onclick="showPage('receipts')">Receipts</a><a href="#" onclick="showPage('elections')">Elections</a></div>
+      <div class="footer-links-col"><h4>Info</h4><a href="#" onclick="showPage('guide')">Voting Guide</a><a href="#" onclick="showPage('voices')">Voices</a><a href="#" onclick="showPage('quiz')">Find My Party</a></div>
+    </div>
+    <div class="footer-bottom"><span>&#169; 2025 VOTA ZA</span><div class="footer-flag"><div class="flag-dot" style="background:#007A4D"></div><div class="flag-dot" style="background:#FFB612"></div><div class="flag-dot" style="background:#DE3831"></div><span style="margin-left:0.4rem">Made in South Africa</span></div></div>
+  </footer>
+</div>
+
+<script>
+// ═══════════════════════════════════
+// SUPABASE INIT
+// ═══════════════════════════════════
+const SUPABASE_URL = 'https://mfhxcpwmehbbrffhywch.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1maHhjcHdtZWhiYnJmZmh5d2NoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMzMjE2NDUsImV4cCI6MjA4ODg5NzY0NX0.dMMv2FxzLvZgkog_jCT20fR46GIw613NRLw-2AHCfQY';
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// Cache
+let allParties = [];
+let allPromises = [];
+let allVoices = [];
+
+// ═══════════════════════════════════
+// THEME
+// ═══════════════════════════════════
+let currentTheme = 'dark';
+document.getElementById('themeToggle').addEventListener('click', () => {
+  currentTheme = currentTheme === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', currentTheme);
+  document.getElementById('themeToggle').textContent = currentTheme === 'dark' ? '☀' : '☾';
+});
+
+// ═══════════════════════════════════
+// PAGE ROUTING
+// ═══════════════════════════════════
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  window.scrollTo(0, 0);
+  document.querySelectorAll('.nav-links a').forEach(a => {
+    a.classList.toggle('active', a.getAttribute('data-page') === name);
+  });
+  if (name === 'quiz') initQuiz();
+  return false;
+}
+
+// Mobile menu
+document.getElementById('hamburger').addEventListener('click', () => {
+  document.getElementById('mobileMenu').classList.toggle('open');
+});
+function closeMobile() { document.getElementById('mobileMenu').classList.remove('open'); }
+
+// ═══════════════════════════════════
+// TOAST
+// ═══════════════════════════════════
+function showToast(msg, duration = 3000) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), duration);
+}
+
+// ═══════════════════════════════════
+// LOAD ALL DATA
+// ═══════════════════════════════════
+async function loadAllData() {
+  try {
+    const [partiesRes, promisesRes, voicesRes] = await Promise.all([
+      sb.from('parties').select('*').eq('is_active', true).order('name'),
+      sb.from('promises').select('*, parties(name, abbreviation, color)').order('year_made', { ascending: false }),
+      sb.from('voices').select('*').eq('is_active', true).order('is_featured', { ascending: false })
+    ]);
+
+    allParties = partiesRes.data || [];
+    allPromises = promisesRes.data || [];
+    allVoices = voicesRes.data || [];
+
+    // Update stat counter
+    if (allParties.length > 0) {
+      document.getElementById('statParties').textContent = allParties.length + '+';
+    }
+
+    renderParties(allParties);
+    renderReceipts(allPromises);
+    renderVoices(allVoices);
+    populateCompareSelects(allParties);
+    renderElectionResults(allParties);
+
+  } catch (err) {
+    console.error('Failed to load data:', err);
+    showToast('Connection issue — showing cached data');
+  }
+}
+
+// ═══════════════════════════════════
+// RENDER PARTIES
+// ═══════════════════════════════════
+function renderParties(parties) {
+  const grid = document.getElementById('partyGrid');
+  if (!parties || parties.length === 0) {
+    grid.innerHTML = '<div style="padding:3rem;text-align:center;color:var(--text-muted);background:var(--bg-card)">No parties found.</div>';
+    return;
+  }
+  grid.innerHTML = parties.map(p => `
+    <div class="party-card" style="--party-color:${p.color}" data-spectrum="${p.spectrum}" data-name="${p.name} ${p.abbreviation}">
+      <div class="party-top">
+        <div class="party-abbr">${p.abbreviation}</div>
+        <div class="party-badge">${p.is_national ? 'National' : 'Regional'}</div>
+      </div>
+      <div class="party-full-name">${p.name}</div>
+      <div class="party-desc">${p.description || ''}</div>
+      <div class="meters">
+        <div class="meter-row"><span class="meter-lbl">Economy</span><div class="meter-track"><div class="meter-fill" style="width:${p.economy_score}%;background:${p.color}"></div></div><span class="meter-pct">${p.economy_score}%</span></div>
+        <div class="meter-row"><span class="meter-lbl">Delivery</span><div class="meter-track"><div class="meter-fill" style="width:${p.delivery_score}%;background:${p.color}"></div></div><span class="meter-pct">${p.delivery_score}%</span></div>
+        <div class="meter-row"><span class="meter-lbl">Transparency</span><div class="meter-track"><div class="meter-fill" style="width:${p.transparency_score}%;background:${p.color}"></div></div><span class="meter-pct">${p.transparency_score}%</span></div>
+      </div>
+      <div class="party-card-footer">
+        <span class="party-spectrum">${p.spectrum || ''}</span>
+        ${p.website_url ? `<a href="${p.website_url}" target="_blank" style="font-size:0.72rem;color:var(--gold)">Official Site →</a>` : ''}
+      </div>
+    </div>
+  `).join('');
+}
+
+function filterParties() {
+  const q = document.getElementById('partySearch').value.toLowerCase();
+  const filtered = allParties.filter(p =>
+    p.name.toLowerCase().includes(q) || p.abbreviation.toLowerCase().includes(q)
+  );
+  renderParties(filtered);
+}
+
+function filterBySpectrum(spectrum, btn) {
+  document.querySelectorAll('.filter-row .filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  const filtered = spectrum === 'all' ? allParties : allParties.filter(p => p.spectrum === spectrum);
+  renderParties(filtered);
+}
+
+// ═══════════════════════════════════
+// COMPARE
+// ═══════════════════════════════════
+const compareTopics = [
+  { key: 'economy_policy', label: 'Economy', icon: '📈' },
+  { key: 'land_policy', label: 'Land', icon: '🌍' },
+  { key: 'healthcare_policy', label: 'Healthcare', icon: '🏥' },
+  { key: 'education_policy', label: 'Education', icon: '📚' },
+  { key: 'safety_policy', label: 'Safety', icon: '🛡️' },
+  { key: 'energy_policy', label: 'Energy', icon: '⚡' },
+];
+
+function populateCompareSelects(parties) {
+  const opts = parties.map(p => `<option value="${p.id}">${p.abbreviation} — ${p.name}</option>`).join('');
+  document.getElementById('partyA').innerHTML = opts;
+  document.getElementById('partyB').innerHTML = opts;
+  // Default: ANC vs DA
+  const anc = parties.find(p => p.abbreviation === 'ANC');
+  const da = parties.find(p => p.abbreviation === 'DA');
+  if (anc) document.getElementById('partyA').value = anc.id;
+  if (da) document.getElementById('partyB').value = da.id;
+  updateCompare();
+}
+
+function updateCompare() {
+  const idA = document.getElementById('partyA').value;
+  const idB = document.getElementById('partyB').value;
+  const pa = allParties.find(p => p.id === idA);
+  const pb = allParties.find(p => p.id === idB);
+  if (!pa || !pb) return;
+
+  document.getElementById('compareHeaderA').textContent = pa.abbreviation;
+  document.getElementById('compareHeaderA').style.color = pa.color;
+  document.getElementById('compareHeaderB').textContent = pb.abbreviation;
+
+  const rows = compareTopics.map(t => `
+    <div class="compare-row">
+      <div class="cc">${pa[t.key] || '—'}</div>
+      <div class="cc topic"><span>${t.icon}</span>${t.label}</div>
+      <div class="cc">${pb[t.key] || '—'}</div>
+    </div>
+  `).join('');
+  document.getElementById('compareRows').innerHTML = rows;
+}
+
+// ═══════════════════════════════════
+// RECEIPTS
+// ═══════════════════════════════════
+function renderReceipts(promises) {
+  const grid = document.getElementById('receiptGrid');
+  if (!promises || promises.length === 0) {
+    grid.innerHTML = '<div style="padding:3rem;text-align:center;color:var(--text-muted);background:var(--bg-card)">No promises tracked yet.</div>';
+    return;
+  }
+  grid.innerHTML = promises.map(p => `
+    <div class="receipt-card" data-status="${p.status}" style="--party-color:${p.parties?.color || '#888'}">
+      <div class="receipt-party-tag">${p.parties?.abbreviation || '?'}</div>
+      <div class="receipt-body">
+        <div class="receipt-party-name">${p.parties?.name || ''} · ${p.source || ''}</div>
+        <div class="receipt-promise">"${p.promise_text}"</div>
+        <div class="receipt-reality">${p.reality_text || ''}</div>
+        ${p.evidence_url ? `<div class="receipt-source"><a href="${p.evidence_url}" target="_blank" style="color:var(--gold)">View Evidence →</a></div>` : ''}
+      </div>
+      <div class="receipt-status">
+        <div class="status-pill status-${p.status}">${p.status}</div>
+        <div style="font-size:0.68rem;color:var(--text-muted)">${p.year_made || ''}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+let currentReceiptFilter = 'all';
+function filterReceipts(status, btn) {
+  document.querySelectorAll('#page-receipts .filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  currentReceiptFilter = status;
+  const filtered = status === 'all' ? allPromises : allPromises.filter(p => p.status === status);
+  renderReceipts(filtered);
+}
+
+// ═══════════════════════════════════
+// VOICES
+// ═══════════════════════════════════
+function renderVoices(voices) {
+  const grid = document.getElementById('voicesGrid');
+  if (!voices || voices.length === 0) {
+    grid.innerHTML = '<div style="color:var(--text-muted)">No voices listed yet.</div>';
+    return;
+  }
+  grid.innerHTML = voices.map(v => `
+    <div class="voice-card">
+      <div class="voice-top">
+        <div class="voice-avatar">${v.avatar_initials || v.name.slice(0,2).toUpperCase()}</div>
+        <div>
+          <div class="voice-name">${v.name}</div>
+          <div class="voice-handle">${v.handle || ''}</div>
+        </div>
+      </div>
+      <div class="voice-bio">${v.bio || ''}</div>
+      <div class="tag-row">${(v.tags || []).map(t => `<span class="tag">${t}</span>`).join('')}</div>
+      <div class="platform-row">${(v.platforms || []).map(pl => `<span class="plat">${pl}</span>`).join('')}</div>
+    </div>
+  `).join('');
+}
+
+// ═══════════════════════════════════
+// ELECTIONS TABLE
+// ═══════════════════════════════════
+const electionResults2024 = [
+  { abbr: 'ANC', pct: 40.18, seats: 159 },
+  { abbr: 'DA', pct: 21.81, seats: 87 },
+  { abbr: 'MK', pct: 14.58, seats: 58 },
+  { abbr: 'EFF', pct: 9.52, seats: 39 },
+  { abbr: 'IFP', pct: 3.85, seats: 17 },
+  { abbr: 'ActionSA', pct: 1.97, seats: 6 },
+  { abbr: 'Rise', pct: 1.28, seats: 2 },
+];
+
+function renderElectionResults(parties) {
+  const body = document.getElementById('electionResultsBody');
+  body.innerHTML = electionResults2024.map(r => {
+    const party = parties.find(p => p.abbreviation === r.abbr || p.abbreviation.includes(r.abbr));
+    const color = party?.color || '#888';
+    const barWidth = Math.round(r.pct * 4);
+    return `<tr>
+      <td><span class="party-dot" style="background:${color}"></span>${r.abbr}</td>
+      <td>${r.pct}%</td>
+      <td><div style="display:flex;align-items:center;gap:0.5rem"><div style="height:4px;width:${barWidth}px;background:${color};border-radius:2px"></div></div></td>
+      <td>${r.seats}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════
+// NEWSLETTER
+// ═══════════════════════════════════
+async function subscribeNewsletter(inputId, source) {
+  const email = document.getElementById(inputId).value.trim();
+  if (!email || !email.includes('@')) {
+    showToast('Please enter a valid email address.');
+    return;
+  }
+  try {
+    const { error } = await sb.from('newsletter_subscribers').upsert(
+      { email: email.toLowerCase(), source, is_active: true },
+      { onConflict: 'email' }
+    );
+    if (error) throw error;
+    document.getElementById(inputId).value = '';
+    showToast('🇿🇦 Subscribed! Welcome to VOTA.');
+  } catch (err) {
+    showToast('Something went wrong. Please try again.');
+  }
+}
+
+// ═══════════════════════════════════
+// FAQ
+// ═══════════════════════════════════
+function toggleFaq(btn) { btn.parentElement.classList.toggle('open'); }
+
+// ═══════════════════════════════════
+// ELECTION TABS
+// ═══════════════════════════════════
+function switchElectionTab(name, btn) {
+  document.querySelectorAll('.etab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.election-content').forEach(c => c.classList.remove('active'));
+  document.getElementById('etab-' + name).classList.add('active');
+}
+
+// ═══════════════════════════════════
+// QUIZ
+// ═══════════════════════════════════
+const questions = [
+  { q: "When it comes to the economy, which approach do you most agree with?", options: [
+    { text: "The state should own key industries — mines, banks, and energy — and distribute wealth directly.", scores: { EFF: 3, MK: 3, ANC: 1 } },
+    { text: "Government should remove red tape and let private business drive growth and jobs.", scores: { DA: 3, ActionSA: 2, IFP: 1 } },
+    { text: "A balance — some state involvement, mostly open markets with strong regulation.", scores: { ANC: 2, Rise: 2, GOOD: 2 } },
+    { text: "Radical redistribution is needed before economic growth can be meaningful.", scores: { EFF: 2, MK: 2 } },
+  ]},
+  { q: "What is the most important thing South Africa needs to fix right now?", options: [
+    { text: "Corruption and accountability — officials must face real consequences.", scores: { DA: 2, ActionSA: 3, Rise: 2 } },
+    { text: "Land redistribution and economic transformation to address apartheid inequalities.", scores: { EFF: 3, MK: 2, ANC: 1 } },
+    { text: "Basic service delivery — water, electricity, roads, housing.", scores: { ANC: 2, IFP: 2, Rise: 1 } },
+    { text: "Jobs — especially for young people. Everything else follows from employment.", scores: { DA: 2, ActionSA: 2, ANC: 1 } },
+  ]},
+  { q: "On the question of land, which statement is closest to your view?", options: [
+    { text: "All land should be expropriated without compensation and held by the state.", scores: { EFF: 3, MK: 2 } },
+    { text: "Land reform should happen, but within the constitution.", scores: { ANC: 2, Rise: 2, IFP: 1 } },
+    { text: "Property rights must be protected. Market-based land reform is the right approach.", scores: { DA: 3, ActionSA: 2 } },
+    { text: "Traditional communities should be empowered to manage land.", scores: { IFP: 3, MK: 1 } },
+  ]},
+  { q: "How should South Africa approach healthcare?", options: [
+    { text: "Fully nationalised healthcare — abolish private healthcare.", scores: { EFF: 3, MK: 2 } },
+    { text: "Implement NHI — a national insurance fund everyone contributes to.", scores: { ANC: 3, GOOD: 1 } },
+    { text: "Fix public hospitals first. NHI needs proper implementation before expansion.", scores: { Rise: 2, GOOD: 2, ANC: 1 } },
+    { text: "Keep public and private systems running in parallel.", scores: { DA: 3, ActionSA: 2 } },
+  ]},
+  { q: "Which statement about South Africa's constitution do you most agree with?", options: [
+    { text: "The constitution is a foundation of democracy and must be upheld at all costs.", scores: { DA: 3, Rise: 2, ActionSA: 2 } },
+    { text: "The constitution may need amendments to allow for radical transformation.", scores: { ANC: 2, EFF: 2 } },
+    { text: "The constitution is fundamentally flawed and should be rewritten.", scores: { MK: 3 } },
+    { text: "The constitution is fine but is being used by elites to block change.", scores: { EFF: 2, MK: 1 } },
+  ]},
+  { q: "What's your view on local government and municipalities?", options: [
+    { text: "Municipalities must be run like businesses — efficiency and clean audits.", scores: { DA: 3, ActionSA: 2, Rise: 1 } },
+    { text: "Traditional leaders and local structures should play a bigger role.", scores: { IFP: 3, MK: 1 } },
+    { text: "National government should take over failing municipalities.", scores: { ANC: 2, EFF: 1 } },
+    { text: "Citizens and civil society need more power to hold ward councillors accountable.", scores: { Rise: 3, GOOD: 2 } },
+  ]},
+  { q: "On crime and safety, which approach do you support?", options: [
+    { text: "Strict enforcement, tougher sentencing, better-resourced police.", scores: { DA: 2, ActionSA: 3 } },
+    { text: "Address root causes — poverty and inequality drive crime.", scores: { EFF: 2, MK: 1, ANC: 1 } },
+    { text: "Community policing and partnerships between police and communities.", scores: { IFP: 2, Rise: 2, GOOD: 2 } },
+    { text: "Demilitarise the police and overhaul SAPS culture completely.", scores: { EFF: 2, Rise: 1 } },
+  ]},
+  { q: "What kind of political leadership do you want to see?", options: [
+    { text: "Strong, decisive leadership that takes bold action even if controversial.", scores: { EFF: 2, MK: 2 } },
+    { text: "Coalition-building leadership that finds consensus across party lines.", scores: { DA: 1, Rise: 2, GOOD: 3, ANC: 1 } },
+    { text: "Technocratic, data-driven leadership focused on measurable outcomes.", scores: { DA: 2, ActionSA: 2, Rise: 2 } },
+    { text: "Leadership rooted in community and African cultural values.", scores: { IFP: 3, MK: 1, ANC: 1 } },
+  ]},
+];
+
+const partyDescs = {
+  ANC: 'You value economic transformation, social welfare, and a mixed governance approach.',
+  DA: 'You prioritise accountability, free markets, constitutional governance, and efficient delivery.',
+  EFF: 'You want radical economic transformation, nationalisation, and challenge the status quo.',
+  MK: 'You support populist transformation and are willing to challenge constitutional structures.',
+  IFP: 'You value community-based governance, cultural heritage, and stable local delivery.',
+  ActionSA: 'You prioritise anti-corruption, law enforcement, and business-friendly reform.',
+  Rise: 'You want progressive reform through accountable governance and coalition-building.',
+  GOOD: 'You value social justice, inclusive growth, and participatory democracy.',
+};
+
+let qIndex = 0;
+let quizScores = {};
+
+function initQuiz() {
+  qIndex = 0;
+  quizScores = { ANC:0, DA:0, EFF:0, MK:0, IFP:0, ActionSA:0, Rise:0, GOOD:0 };
+  document.getElementById('quizCard').style.display = 'block';
+  document.getElementById('quizProgress').style.display = 'flex';
+  document.getElementById('quizResults').classList.remove('show');
+  renderQuestion();
+}
+
+function renderQuestion() {
+  const q = questions[qIndex];
+  document.getElementById('qNum').textContent = 'Question ' + String(qIndex+1).padStart(2,'0');
+  document.getElementById('qText').textContent = q.q;
+  document.getElementById('progressLabel').textContent = `Question ${qIndex+1} of ${questions.length}`;
+  document.getElementById('progressFill').style.width = ((qIndex / questions.length) * 100) + '%';
+  document.getElementById('quizBackBtn').style.display = qIndex > 0 ? 'inline-block' : 'none';
+  document.getElementById('qOptions').innerHTML = q.options.map((o, i) =>
+    `<button class="quiz-option" onclick="selectOption(${i})">${o.text}</button>`
+  ).join('');
+}
+
+function selectOption(i) {
+  document.querySelectorAll('.quiz-option')[i].classList.add('selected');
+  const chosen = questions[qIndex].options[i];
+  Object.entries(chosen.scores || {}).forEach(([party, pts]) => {
+    quizScores[party] = (quizScores[party] || 0) + pts;
+  });
+  setTimeout(() => {
+    if (qIndex < questions.length - 1) { qIndex++; renderQuestion(); }
+    else showResults();
+  }, 300);
+}
+
+function quizBack() { if (qIndex > 0) { qIndex--; renderQuestion(); } }
+
+function showResults() {
+  document.getElementById('quizCard').style.display = 'none';
+  document.getElementById('quizProgress').style.display = 'none';
+  document.getElementById('quizResults').classList.add('show');
+
+  const sorted = Object.entries(quizScores).sort((a,b) => b[1]-a[1]);
+  const top = sorted[0];
+  const pct = Math.min(95, Math.round((top[1] / (questions.length * 0.8)) * 100));
+
+  // Find matching party from DB
+  const matchedParty = allParties.find(p =>
+    p.abbreviation === top[0] || p.name.includes(top[0])
+  );
+
+  document.getElementById('resultPct').textContent = pct + '%';
+  document.getElementById('resultParty').textContent = matchedParty?.name || top[0];
+  document.getElementById('resultDesc').textContent = partyDescs[top[0]] || '';
+
+  let breakdown = '';
+  sorted.forEach(([abbr, score]) => {
+    const p = allParties.find(pt => pt.abbreviation === abbr || pt.name.includes(abbr));
+    const pct2 = Math.min(98, Math.round((score / (questions.length * 0.8)) * 100));
+    if (pct2 > 0) {
+      breakdown += `<div class="rb-row">
+        <span class="rb-name">${p?.abbreviation || abbr}</span>
+        <div class="rb-bar-wrap"><div class="rb-bar" style="width:${pct2}%;background:${p?.color || '#888'}"></div></div>
+        <span class="rb-pct">${pct2}%</span>
+      </div>`;
+    }
+  });
+  document.getElementById('resultsBreakdown').innerHTML = breakdown;
+
+  // Save to Supabase
+  sb.from('quiz_results').insert({
+    scores: quizScores,
+    top_party_id: matchedParty?.id || null
+  }).then(() => {});
+}
+
+function restartQuiz() { initQuiz(); }
+
+// ═══════════════════════════════════
+// INIT
+// ═══════════════════════════════════
+loadAllData();
+initQuiz();
+</script>
+</body>
+</html>
